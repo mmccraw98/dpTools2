@@ -31,7 +31,7 @@ class Data:
                                  f"Contents of directory: {os.listdir(self.root)}")
 
     def validate_trajectory(self):
-        pass
+        pass  # TODO: Implement
 
     def __repr__(self):
         trajectory_repr = ''

@@ -32,5 +32,5 @@ class Trajectory:
         return len(self.steps)
 
     def __repr__(self):
-        config_repr = repr(self.configurations[0]).replace('\n', '\n\t\t')
+        config_repr = repr(self[0]).replace('\n', '\n\t\t')
         return f"Trajectory(\n\tnum_configs={len(self)},\n\t{config_repr}\n)"
