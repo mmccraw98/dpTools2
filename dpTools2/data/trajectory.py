@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 import os
 from .configuration import Configuration
 
@@ -17,7 +18,7 @@ class Trajectory:
         self.configurations = self.load_full_trajectory() if load_all else None
 
     def load_full_trajectory(self):
-        return np.array([Configuration(str(path)) for path in self.index_paths])
+        return np.array([Configuration(str(path)) for path in tqdm(self.index_paths)])
 
     def load_configuration(self, path):
         return Configuration(path)

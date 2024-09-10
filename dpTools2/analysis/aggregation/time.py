@@ -32,7 +32,7 @@ def calculate_serial(indices: List[List[int]], calc_func: Callable, **func_kwarg
         results.append(calc_func(index_set, **func_kwargs))
     return results
 
-def calculate_parallel_threadpool(indices: List[List[int]], calc_func: Callable, chunk_size: int = 1, cpu_count: int = None, **func_kwargs) -> List[Any]:
+def calculate_parallel_threadpool(indices: List[List[int]], calc_func: Callable, chunk_size: int = 1000, cpu_count: int = None, **func_kwargs) -> List[Any]:
     """
     Calculate the series of values for a given set of indices using a provided calculation function in parallel.
 
