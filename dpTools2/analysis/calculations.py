@@ -1,5 +1,7 @@
 import numpy as np
 from typing import List, Tuple, Optional
+from scipy.optimize import curve_fit
+
 def calculate_momentum_tensor(velocities: np.ndarray, masses: np.ndarray, dim: int = 2) -> np.ndarray:
     """Calculate the momentum tensor for a set of particles.
     
@@ -107,3 +109,58 @@ def normalize_histograms_r_theta_phi(H: List[np.ndarray],
         G.append(h / (n_r_ideal * constant))
     
     return G, edge_centers
+
+def fit_line(y, t, exponent=None, intercept=None, t_min=None, t_max=None):
+    t_min = min(t) if t_min is None else t_min
+    t_max = max(t) if t_max is None else t_max
+    mask = (t >= t_min) & (t <= t_max)
+    if mask.sum() == 0:
+        print('No data in the given range')
+        return None
+    if exponent is not None and intercept is not None:
+        def model(x, m):
+            return m * x ** exponent + intercept
+        popt, pcov = curve_fit(model, t[mask], y[mask])
+        return popt
+    elif exponent is not None:
+        def model(x, m):
+            return m * x ** exponent
+        popt, pcov = curve_fit(model, t[mask], y[mask])
+        return popt
+    elif intercept is not None:
+        def model(x, m):
+            return m * x + intercept
+        popt, pcov = curve_fit(model, t[mask], y[mask])
+        return popt
+    else:
+        popt = np.polyfit(t[mask], y[mask], 1)
+        return popt
+
+def fit_exponential(y, t, t_min=None, t_max=None):
+    t_min = min(t) if t_min is None else t_min
+    t_max = max(t) if t_max is None else t_max
+    mask = (t >= t_min) & (t <= t_max)
+    if mask.sum() == 0:
+        print('No data in the given range')
+        return None
+
+    # Scaling data
+    t_scaled = t[mask] / np.max(t)
+    y_scaled = y[mask] / np.max(y)
+
+    def model(x, m, c):
+        return m * np.exp(c * x)
+
+    # Initial guesses and bounds
+    initial_guesses = [1.0, 0.1]  # Assumes `m` starts at 1, `c` at 0.1
+    bounds = ([0, -np.inf], [np.inf, np.inf])  # `m` must be positive, no bounds on `c`
+
+    try:
+        popt, pcov = curve_fit(model, t_scaled, y_scaled, p0=initial_guesses, bounds=bounds)
+        # Rescale parameters to original data scale
+        popt[0] *= np.max(y)
+        popt[1] /= np.max(t)
+        return popt
+    except RuntimeError as e:
+        print("Optimization failed:", e)
+        return None
