@@ -157,7 +157,10 @@ def calculate_time_correlations(
         raise ValueError(f'Backend {backend} not recognized')
     
     if not hasattr(data.system, 'pair_corrs'):
-        raise ValueError('Pair correlation functions must be calculated first')
+        data = Data(data.root, load_all=True)
+        data_was_fully_loaded = True
+        if not hasattr(data.system, 'pair_corrs'):
+            raise ValueError('Pair correlation functions must be calculated first')
 
     if time_pair_style == 'log':
         pairs = aggregation.generate_logscheme_time_pairs(data.trajectory.index, 0, 1)
