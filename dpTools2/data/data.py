@@ -11,8 +11,13 @@ class Data:
     system_path = 'system'
     trajectory_path = 'trajectories'
 
-    def __init__(self, path, load_all=True):
+    def __init__(self, path, load_all=True, load_trajectory=True):
         self.root = path
+        self.load_system(path)
+        if load_trajectory:
+            self.load_trajectory(os.path.join(path, self.trajectory_path), load_all)
+
+    def load_system(self, path):
         if not os.path.exists(os.path.join(path, self.system_path)):
             try:
                 self.system = System(path)
@@ -21,7 +26,6 @@ class Data:
                                  f"Contents of directory: {os.listdir(self.root)}")
         else:
             self.system = System(os.path.join(path, self.system_path))
-        self.load_trajectory(os.path.join(path, self.trajectory_path), load_all)
 
     def load_trajectory(self, path, load_all):
         if os.path.exists(path):
