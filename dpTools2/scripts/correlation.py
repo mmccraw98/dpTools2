@@ -144,7 +144,7 @@ def calculate_time_correlations(
         num_isf_angles: int = 10,
         overwrite: bool = False,
         just_msd: bool = False,
-        angle_corrs: bool = False
+        angle_corrs: bool = True
 ):
     if not overwrite and os.path.exists(f'{data.root}/{data.system_path}/corrs.dat'):
         return
@@ -193,7 +193,7 @@ def calculate_time_correlations(
             isf, time_lags = aggregation.average_by_time_lag(isf_results)
             corrs[name] = isf
         
-        if angle_corrs:
+        if angle_corrs and hasattr(data.trajectory[0], 'particleAngles'):
             if backend == 'multiprocessing':
                 rot_msd_results = aggregation.calculate_parallel_multiprocessing(pairs, data.rot_msd_corr_func, chunk_size=chunk_size)
             elif backend == 'threadpool':
