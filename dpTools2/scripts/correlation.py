@@ -64,9 +64,6 @@ def calculate_pair_correlation_function(
         h /= len(res)
     g, bins = calculations.normalize_histograms_r_theta_phi(histograms, edges, box_size, num_particles, N_angle_bins=num_angle_bins, N_angle_axis_bins=num_angle_axis_bins, angle_period=angle_period, filters=radii_filter)
 
-    if not data_was_fully_loaded and can_load_all:
-        data = Data(data.root, load_all=False)
-
     return pd.DataFrame({'r': bins[0], 'g': g[0]})
 
 def get_first_peak_locations(pc):
@@ -92,7 +89,9 @@ def calculate_all_pair_correlation_functions(
 
         pc_first_peak = calculate_pair_correlation_function(data, can_load_all=can_load_all, radii_filter=[filter], r_min=0.97 * r_min, r_max=1.2 * r_max, num_distance_bins=num_bins, backend=backend, chunk_size=chunk_size)
 
-        pc_second_third_peak = calculate_pair_correlation_function(data, can_load_all=can_load_all, radii_filter=[filter], r_min=2 * 1.5 * r_min, r_max=2 * 4 * r_max, num_distance_bins=num_bins, backend=backend, chunk_size=chunk_size)
+        r_trough = pc_full.r[np.argmin(pc_full.g[pc_full.r > r_max]) + np.argwhere(pc_full.r > r_max)[0][0]]
+
+        pc_second_third_peak = calculate_pair_correlation_function(data, can_load_all=can_load_all, radii_filter=[filter], r_min=r_trough, r_max=3 * r_trough, num_distance_bins=num_bins, backend=backend, chunk_size=chunk_size)
 
         results.update({
             f'g_full_{name}': pc_full.g,
@@ -122,7 +121,7 @@ def get_wave_vectors_filters_and_names(data: Data) -> tuple[np.ndarray, list[np.
         particle_radii == particle_radii.min(),
         particle_radii == particle_radii.min(),
         particle_radii == particle_radii.max(),
-        particle_radii == particle_radii.min(),
+        particle_radii == particle_radii.max(),
         np.ones(particle_radii.size, dtype=bool)
     ]
 
@@ -143,7 +142,9 @@ def calculate_time_correlations(
         time_pair_style: str = 'log',
         chunk_size: int = 10,
         num_isf_angles: int = 10,
-        overwrite: bool = False
+        overwrite: bool = False,
+        just_msd: bool = False,
+        angle_corrs: bool = False
 ):
     if not overwrite and os.path.exists(f'{data.root}/{data.system_path}/corrs.dat'):
         return
@@ -181,17 +182,39 @@ def calculate_time_correlations(
         'time_lags': time_lags,
     }
 
-    for name, filter, wave_vector in zip(names, filters, wave_vectors):
-        if backend == 'multiprocessing':
-            isf_results = aggregation.calculate_parallel_multiprocessing(pairs, data.self_isf_corr_func, chunk_size=chunk_size, wave_vector=wave_vector, filter=filter, num_angles=num_isf_angles, drift_correction=True, particle_level=True)
-        elif backend == 'threadpool':
-            isf_results = aggregation.calculate_parallel_threadpool(pairs, data.self_isf_corr_func, chunk_size=chunk_size, wave_vector=wave_vector, filter=filter, num_angles=num_isf_angles, drift_correction=True, particle_level=True)
-        else:
-            isf_results = aggregation.calculate_serial(pairs, data.self_isf_corr_func, wave_vector=wave_vector, filter=filter, num_angles=num_isf_angles, drift_correction=True, particle_level=True)
-        isf, time_lags = aggregation.average_by_time_lag(isf_results)
-        corrs[name] = isf
+    if not just_msd:
+        for name, filter, wave_vector in zip(names, filters, wave_vectors):
+            if backend == 'multiprocessing':
+                isf_results = aggregation.calculate_parallel_multiprocessing(pairs, data.self_isf_corr_func, chunk_size=chunk_size, wave_vector=wave_vector, filter=filter, num_angles=num_isf_angles, drift_correction=True, particle_level=True)
+            elif backend == 'threadpool':
+                isf_results = aggregation.calculate_parallel_threadpool(pairs, data.self_isf_corr_func, chunk_size=chunk_size, wave_vector=wave_vector, filter=filter, num_angles=num_isf_angles, drift_correction=True, particle_level=True)
+            else:
+                isf_results = aggregation.calculate_serial(pairs, data.self_isf_corr_func, wave_vector=wave_vector, filter=filter, num_angles=num_isf_angles, drift_correction=True, particle_level=True)
+            isf, time_lags = aggregation.average_by_time_lag(isf_results)
+            corrs[name] = isf
+        
+        if angle_corrs:
+            if backend == 'multiprocessing':
+                rot_msd_results = aggregation.calculate_parallel_multiprocessing(pairs, data.rot_msd_corr_func, chunk_size=chunk_size)
+            elif backend == 'threadpool':
+                rot_msd_results = aggregation.calculate_parallel_threadpool(pairs, data.rot_msd_corr_func, chunk_size=chunk_size)
+            else:
+                rot_msd_results = aggregation.calculate_serial(pairs, data.rot_msd_corr_func)
+            
+            rot_msd, time_lags = aggregation.average_by_time_lag(rot_msd_results)
+            corrs['rot_msd'] = rot_msd
+
+            for name, filter in zip(
+                ['sigma_min', 'sigma_max'],
+                [data.system.particleRadii == data.system.particleRadii.min(), data.system.particleRadii == data.system.particleRadii.max()]
+            ):
+                if backend == 'multiprocessing':
+                    rot_isf_results = aggregation.calculate_parallel_multiprocessing(pairs, data.rot_self_isf_corr_func, chunk_size=chunk_size, filter=filter, n=1)
+                elif backend == 'threadpool':
+                    rot_isf_results = aggregation.calculate_parallel_threadpool(pairs, data.rot_self_isf_corr_func, chunk_size=chunk_size, filter=filter, n=1)
+                else:
+                    rot_isf_results = aggregation.calculate_serial(pairs, data.rot_self_isf_corr_func, filter=filter, n=1)
+                rot_isf, time_lags = aggregation.average_by_time_lag(rot_isf_results)
+                corrs[f'rot_self_isf_{name}'] = rot_isf
 
     pd.DataFrame(corrs).to_csv(f'{data.root}/{data.system_path}/corrs.dat', index=False, sep='\t')
-
-    if not data_was_fully_loaded and can_load_all:
-        data = Data(data.root, load_all=False)

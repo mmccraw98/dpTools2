@@ -56,11 +56,19 @@ class Data:
         if drift_correction:
             delta -= np.mean(delta, axis=0, keepdims=True)
         delta_squared = np.sum(delta ** 2, axis=1)
-        
         return Result(
             data=(np.mean(delta_squared),),
             time=abs(self.trajectory.steps[i] - self.trajectory.steps[j])
         )
+
+    def rot_msd_corr_func(self, pair: Tuple[int, int]) -> Result:
+        i, j = pair
+        angle_diff = self.trajectory[i].particleAngles - self.trajectory[j].particleAngles
+        return Result(
+            data=(np.mean(angle_diff ** 2),),
+            time=abs(self.trajectory.steps[i] - self.trajectory.steps[j])
+        )
+
     
     def self_isf_corr_func(self, pair: Tuple[int, int], wave_vector: np.ndarray, filter: np.ndarray = None, num_angles: int = 10, drift_correction: bool = True, particle_level: bool = True, backend: str = 'numpy') -> Result:
         i, j = pair
@@ -89,6 +97,16 @@ class Data:
 
         return Result(
             data=(np.real(np.mean(sq)),),
+            time=abs(self.trajectory.steps[i] - self.trajectory.steps[j])
+        )
+    
+    def rot_self_isf_corr_func(self, pair: Tuple[int, int], filter: np.ndarray = None, n: int = 1) -> Result:
+        i, j = pair
+        angle_diff = (self.trajectory[i].particleAngles - self.trajectory[j].particleAngles)
+        if filter is not None:
+            angle_diff = angle_diff[filter]
+        return Result(
+            data=(np.real(np.mean(np.exp(1j * n * angle_diff))),),
             time=abs(self.trajectory.steps[i] - self.trajectory.steps[j])
         )
 
