@@ -117,23 +117,22 @@ class Data:
             particle_angles = self.trajectory[i].particleAngles
             bins.append(angle_axis_bins)
 
-        pbc_pos = getPBCPositions(pos, self.system.boxSize)
-
-        distances, diff = computeDistances(pbc_pos, self.system.boxSize, return_diffs=True)
-
-        sample = [distances]
-        if angle_bins is not None and angle_period is not None:
-            sample.append(np.arctan2(diff[:, :, 1], diff[:, :, 0]) % angle_period)
-            bins.append(angle_bins)
-        if angle_axis_bins is not None and angle_period is not None:
-            sample.append((particle_angles[:, np.newaxis] - particle_angles[np.newaxis, :]) % angle_period)
-        mask = distances > 0
         hist = []
         for f in filters:
-            final_mask = mask & f[np.newaxis, :] & f[:, np.newaxis]
+            pbc_pos = getPBCPositions(pos[f], self.system.boxSize)
+
+            distances, diff = computeDistances(pbc_pos, self.system.boxSize, return_diffs=True)
+
+            sample = [distances]
+            if angle_bins is not None and angle_period is not None:
+                sample.append(np.arctan2(diff[:, :, 1], diff[:, :, 0]) % angle_period)
+                bins.append(angle_bins)
+            if angle_axis_bins is not None and angle_period is not None:
+                sample.append(((particle_angles[f][:, np.newaxis] - particle_angles[f][np.newaxis, :]) % angle_period))
+            mask = distances > 0
 
             hist_new, edges = np.histogramdd(
-                [s[final_mask].flatten() for s in sample],
+                [s[mask].flatten() for s in sample],
                 bins=bins,
                 density=False
             )

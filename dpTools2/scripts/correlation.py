@@ -19,10 +19,6 @@ def calculate_pair_correlation_function(
     backend: str = 'threadpool', 
     chunk_size: int = 10
 ):
-    
-    if angle_bins is not None or angle_axis_bins is not None:
-        raise NotImplementedError('Angle correlation functions are not implemented yet')
-
     data_was_fully_loaded = data.trajectory.configurations is not None
 
     if not data_was_fully_loaded and can_load_all:
@@ -37,6 +33,7 @@ def calculate_pair_correlation_function(
     box_size = data.system.boxSize
     r_min = max(data.system.particleRadii.min() if r_min is None else r_min, 0)
     r_max = min(box_size.mean() / 2 if r_max is None else r_max, box_size.mean() / 2)
+
     num_particles = len(radii_filter[0])
     distance_bins = np.linspace(r_min, r_max, num_distance_bins)
     
@@ -47,6 +44,7 @@ def calculate_pair_correlation_function(
         names.append('angle_axis')
 
     indices = data.trajectory.index.copy()
+
     res_with_edges = data.pair_corr_func(indices[0], filters=radii_filter, distance_bins=distance_bins, angle_bins=angle_bins, angle_axis_bins=angle_axis_bins, angle_period=angle_period, return_edges=True)
     edges = res_with_edges.data[1]
     if backend == 'multiprocessing':
@@ -56,15 +54,21 @@ def calculate_pair_correlation_function(
     else:
         res = aggregation.calculate_serial(indices, data.pair_corr_func, filters=radii_filter, distance_bins=distance_bins, angle_bins=angle_bins, angle_axis_bins=angle_axis_bins, angle_period=angle_period, return_edges=False)
 
-    histograms = [np.zeros(len(_)) for _ in res[0].data[0]]
+    histograms = [np.zeros(_.shape) for _ in res[0].data[0]]
     for hist in res:
         for i, h in enumerate(hist.data[0]):
             histograms[i] += h
     for h in histograms:
         h /= len(res)
+
     g, bins = calculations.normalize_histograms_r_theta_phi(histograms, edges, box_size, num_particles, N_angle_bins=num_angle_bins, N_angle_axis_bins=num_angle_axis_bins, angle_period=angle_period, filters=radii_filter)
 
-    return pd.DataFrame({'r': bins[0], 'g': g[0]})
+    bin_names = [name for name in names[1:]]
+    index = pd.MultiIndex.from_product(bins, names=bin_names)
+
+    data_dict = {'g': g[0].flatten()}
+    df = pd.DataFrame(data_dict, index=index).reset_index()
+    return df
 
 def get_first_peak_locations(pc):
     r_min = pc[pc.g > 0].r.min()
