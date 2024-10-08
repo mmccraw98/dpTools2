@@ -110,11 +110,13 @@ class Data:
             time=abs(self.trajectory.steps[i] - self.trajectory.steps[j])
         )
 
-    def pair_corr_func(self, i: int, filters: List[np.ndarray], distance_bins: np.ndarray, angle_bins: np.ndarray = None, angle_axis_bins: np.ndarray = None, angle_period: float = None, return_edges: bool = False) -> Result:
+    def pair_corr_func(self, i: int, filters: List[np.ndarray], distance_bins: np.ndarray, angle_bins: np.ndarray = None, angle_axis_bins: np.ndarray = None, angle_period: float = None, return_edges: bool = False, angle_offsets: np.ndarray = None) -> Result:
         pos = self.trajectory[i].particlePos
         bins = [distance_bins]
         if angle_axis_bins is not None and angle_period is not None:
             particle_angles = self.trajectory[i].particleAngles
+            if angle_offsets is not None:
+                particle_angles += angle_offsets
             bins.append(angle_axis_bins)
 
         hist = []

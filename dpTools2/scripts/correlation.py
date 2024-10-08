@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
+from typing import List
 from ..data import Data
 from ..analysis import aggregation, calculations
 
@@ -16,6 +17,7 @@ def calculate_pair_correlation_function(
     angle_bins: np.ndarray = None, 
     angle_axis_bins: np.ndarray = None, 
     angle_period: float = None, 
+    angle_offsets: np.ndarray = None,
     backend: str = 'threadpool', 
     chunk_size: int = 10
 ):
@@ -36,7 +38,10 @@ def calculate_pair_correlation_function(
 
     num_particles = len(radii_filter[0])
     distance_bins = np.linspace(r_min, r_max, num_distance_bins)
-    
+
+    if angle_offsets is None:
+        angle_offsets = np.zeros(num_particles)
+
     names = ['g', 'r']
     if angle_bins is not None:
         names.append('angle')
@@ -45,14 +50,14 @@ def calculate_pair_correlation_function(
 
     indices = data.trajectory.index.copy()
 
-    res_with_edges = data.pair_corr_func(indices[0], filters=radii_filter, distance_bins=distance_bins, angle_bins=angle_bins, angle_axis_bins=angle_axis_bins, angle_period=angle_period, return_edges=True)
+    res_with_edges = data.pair_corr_func(indices[0], filters=radii_filter, distance_bins=distance_bins, angle_bins=angle_bins, angle_axis_bins=angle_axis_bins, angle_period=angle_period, return_edges=True, angle_offsets=angle_offsets)
     edges = res_with_edges.data[1]
     if backend == 'multiprocessing':
-        res = aggregation.calculate_parallel_multiprocessing(indices, data.pair_corr_func, chunk_size=chunk_size, filters=radii_filter, distance_bins=distance_bins, angle_bins=angle_bins, angle_axis_bins=angle_axis_bins, angle_period=angle_period, return_edges=False)
+        res = aggregation.calculate_parallel_multiprocessing(indices, data.pair_corr_func, chunk_size=chunk_size, filters=radii_filter, distance_bins=distance_bins, angle_bins=angle_bins, angle_axis_bins=angle_axis_bins, angle_period=angle_period, return_edges=False, angle_offsets=angle_offsets)
     elif backend == 'threadpool':
-        res = aggregation.calculate_parallel_threadpool(indices, data.pair_corr_func, chunk_size=chunk_size, filters=radii_filter, distance_bins=distance_bins, angle_bins=angle_bins, angle_axis_bins=angle_axis_bins, angle_period=angle_period, return_edges=False)
+        res = aggregation.calculate_parallel_threadpool(indices, data.pair_corr_func, chunk_size=chunk_size, filters=radii_filter, distance_bins=distance_bins, angle_bins=angle_bins, angle_axis_bins=angle_axis_bins, angle_period=angle_period, return_edges=False, angle_offsets=angle_offsets)
     else:
-        res = aggregation.calculate_serial(indices, data.pair_corr_func, filters=radii_filter, distance_bins=distance_bins, angle_bins=angle_bins, angle_axis_bins=angle_axis_bins, angle_period=angle_period, return_edges=False)
+        res = aggregation.calculate_serial(indices, data.pair_corr_func, filters=radii_filter, distance_bins=distance_bins, angle_bins=angle_bins, angle_axis_bins=angle_axis_bins, angle_period=angle_period, return_edges=False, angle_offsets=angle_offsets)
 
     histograms = [np.zeros(_.shape) for _ in res[0].data[0]]
     for hist in res:
@@ -146,6 +151,7 @@ def calculate_time_correlations(
         time_pair_style: str = 'log',
         chunk_size: int = 10,
         num_isf_angles: int = 10,
+        vertex_counts: List[int] = [26, 36],
         overwrite: bool = False,
         just_msd: bool = False,
         angle_corrs: bool = True
@@ -208,16 +214,17 @@ def calculate_time_correlations(
             rot_msd, time_lags = aggregation.average_by_time_lag(rot_msd_results)
             corrs['rot_msd'] = rot_msd
 
-            for name, filter in zip(
+            for name, filter, num_vertex in zip(
                 ['sigma_min', 'sigma_max'],
-                [data.system.particleRadii == data.system.particleRadii.min(), data.system.particleRadii == data.system.particleRadii.max()]
+                [data.system.particleRadii == data.system.particleRadii.min(), data.system.particleRadii == data.system.particleRadii.max()],
+                vertex_counts
             ):
                 if backend == 'multiprocessing':
-                    rot_isf_results = aggregation.calculate_parallel_multiprocessing(pairs, data.rot_self_isf_corr_func, chunk_size=chunk_size, filter=filter, n=1)
+                    rot_isf_results = aggregation.calculate_parallel_multiprocessing(pairs, data.rot_self_isf_corr_func, chunk_size=chunk_size, filter=filter, n=num_vertex)
                 elif backend == 'threadpool':
-                    rot_isf_results = aggregation.calculate_parallel_threadpool(pairs, data.rot_self_isf_corr_func, chunk_size=chunk_size, filter=filter, n=1)
+                    rot_isf_results = aggregation.calculate_parallel_threadpool(pairs, data.rot_self_isf_corr_func, chunk_size=chunk_size, filter=filter, n=num_vertex)
                 else:
-                    rot_isf_results = aggregation.calculate_serial(pairs, data.rot_self_isf_corr_func, filter=filter, n=1)
+                    rot_isf_results = aggregation.calculate_serial(pairs, data.rot_self_isf_corr_func, filter=filter, n=num_vertex)
                 rot_isf, time_lags = aggregation.average_by_time_lag(rot_isf_results)
                 corrs[f'rot_self_isf_{name}'] = rot_isf
 
