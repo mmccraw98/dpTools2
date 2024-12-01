@@ -91,6 +91,7 @@ def config_anim_plot(ax_anim, box_lengths, offset=3):
     ax_anim.set_yticks([])
     ax_anim.set_xticklabels([])
     ax_anim.set_yticklabels([])
+    plt.subplots_adjust(left=0, right=1, bottom=0, top=1)  # Remove padding
 
 def initialize_plot(N, box_lengths, offset=3):
     """Initialize the plot.
