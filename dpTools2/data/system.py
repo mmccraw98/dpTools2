@@ -2,19 +2,24 @@ import os
 from .parameters import Parameters
 from .metrics import Metrics
 from .info import Info
+from ..utils.io import listdir
 
 class System:
 
-    params_fname = 'params.dat'
-    default_metrics = ['energy.dat']
-    default_info = ['boxSize.dat', 'vertexMasses.dat', 'radii.dat', 'particleRadii.dat']
-    additional_metrics = ['corrs.dat', 'pair_corrs.dat']
-    additional_info = []
+    default_metrics = ['energy.csv']
+    additional_metrics = ['corrs.csv', 'pair_corrs.csv']
 
-    def __init__(self, path, metrics=None, info=None):
-        self.parameters = Parameters(os.path.join(path, self.params_fname))
+    def __init__(self, path, metrics=None):
+        self.load_params(path)
         self.load_metrics(path, metrics)
-        self.load_info(path, info)
+        self.load_init(os.path.join(path, 'init'))
+
+    def load_params(self, path):
+        paths = listdir(path, full=True, files_only=True, file_types=['json'])
+        for path in paths:
+            name = os.path.basename(path).split('.')[0]
+            parameters = Parameters(path, name=name)
+            setattr(self, name, parameters)
 
     def load_metrics(self, path, metrics=None):
         if metrics is not None:
@@ -36,22 +41,11 @@ class System:
                 metric = Metrics(metric_path)
                 setattr(self, metric_name, metric)
 
-    def load_info(self, path, info=None):
-        info = self.default_info.extend(info) if info is not None else self.default_info
-        for filename in info:
-            info_path = os.path.join(path, filename)
-            if os.path.exists(info_path):
-                info_name = filename.split('.')[0]
-                info = Info(info_path)
-                setattr(self, info_name, info)
-            else:
-                print(f"Warning: Info file {info_path} not found.")
-        for filename in self.additional_info:
-            info_path = os.path.join(path, filename)
-            if os.path.exists(info_path):
-                info_name = filename.split('.')[0]
-                info = Info(info_path)
-                setattr(self, info_name, info)
+    def load_init(self, path):
+        for filename in listdir(path, full=True, files_only=True, file_types=['dat']):
+            info_name = os.path.basename(filename).split('.')[0]
+            info = Info(filename)
+            setattr(self, info_name, info)
 
     def __repr__(self):
         variables = {

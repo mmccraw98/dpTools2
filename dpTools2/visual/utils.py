@@ -72,7 +72,7 @@ def drawVector(ax_anim, pos, vector, tol=1e-6, **kwargs):
         # ax_anim.quiver(pos, vector, angles='xy', scale_units='xy', scale=1, **kwargs)
         ax_anim.arrow(pos[0], pos[1], vector[0], vector[1], head_width=0.1, head_length=0.1, **kwargs)
 
-def config_anim_plot(ax_anim, box_lengths, offset=3):
+def config_anim_plot(ax_anim, box_lengths, offset=3, bg_color='white'):
     """Configure the animation plot.
     
     Args:
@@ -91,9 +91,10 @@ def config_anim_plot(ax_anim, box_lengths, offset=3):
     ax_anim.set_yticks([])
     ax_anim.set_xticklabels([])
     ax_anim.set_yticklabels([])
+    ax_anim.set_facecolor(bg_color)
     plt.subplots_adjust(left=0, right=1, bottom=0, top=1)  # Remove padding
 
-def initialize_plot(N, box_lengths, offset=3):
+def initialize_plot(N, box_lengths, offset=3, bg_color='white'):
     """Initialize the plot.
     
     Args:
@@ -107,7 +108,8 @@ def initialize_plot(N, box_lengths, offset=3):
     fig, axes = plt.subplots(1, N, figsize=(12, 6))
     if N == 1:
         axes = [axes]
-    config_anim_plot(axes[0], box_lengths, offset=offset)
+    config_anim_plot(axes[0], box_lengths, offset=offset, bg_color=bg_color)
+    fig.patch.set_facecolor(bg_color)
     return fig, axes
 
 def drawBoxBorders(ax_anim, box_lengths, **kwargs):
@@ -134,3 +136,24 @@ def drawBoxBorders(ax_anim, box_lengths, **kwargs):
             **kwargs
         )
     )
+
+
+def create_pool_colors(num_balls):
+    pool_colors = {
+        'cue': [1.0, 1.0, 1.0],      # White
+        '1':   [1.0, 0.84, 0.0],     # Yellow
+        '2':   [0.0, 0.0, 0.8],      # Blue
+        '3':   [0.8, 0.0, 0.0],      # Red
+        '4':   [0.5, 0.0, 0.5],      # Purple
+        '5':   [1.0, 0.5, 0.0],      # Orange
+        '6':   [0.0, 0.5, 0.0],      # Green
+        '7':   [0.5, 0.0, 0.0],      # Maroon
+        '8':   [0.0, 0.0, 0.0],      # Black
+    }
+    colors = np.zeros((num_balls, 3))
+    colors[0] = pool_colors['cue']
+    for i in range(1, min(num_balls, 9)):
+        colors[i] = pool_colors[str(i)]
+    for i in range(9, num_balls):
+        colors[i] = pool_colors[str((i-1) % 7 + 1)]
+    return colors

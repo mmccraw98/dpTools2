@@ -1,1 +1,1 @@
-from .render import animate_data, draw_frame
+from .render import animate_data, draw_frame, animate_pool

@@ -4,7 +4,8 @@ import numba as nb
 @nb.njit(parallel=True, fastmath=True)
 def generate_logscheme_time_pairs(timesteps: np.ndarray,
                                   starting_step: int = 0,
-                                  freq_power: int = 1) -> np.ndarray:
+                                  freq_power: int = 1,
+                                  step_decade_: int = 10) -> np.ndarray:
     """
     Finds all the pairs of time points (i, j) satisfying the relationship t(i) - t(j) = tau
     for a prescribed set of tau values.
@@ -14,7 +15,7 @@ def generate_logscheme_time_pairs(timesteps: np.ndarray,
     num_blocks = int(10 ** (max_power - freq_power))
     decade_spacing = 10
     spacing_decade = 1
-    step_decade = 10
+    step_decade = step_decade_
 
     # Start with a small array and grow it if needed
     all_pairs = np.zeros((int(1e4), 2), dtype=np.int64)

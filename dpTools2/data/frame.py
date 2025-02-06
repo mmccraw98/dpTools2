@@ -1,12 +1,15 @@
 import os
 import numpy as np
 
-class Configuration:
+class Frame:
 
     def __init__(self, path):
-        self.load_configuration(path)
+        if path is not None and os.path.exists(path):
+            self.load_frame(path)
+        else:
+            self.variables = {}
 
-    def load_configuration(self, path):
+    def load_frame(self, path):
         for filename in os.listdir(path):
             if filename.endswith('.dat'):
                 var_name = filename.split('.')[0]
@@ -19,4 +22,4 @@ class Configuration:
             if not var.startswith('_') and not callable(getattr(self, var))
         }
         variables_repr = "\n\t".join(variables.keys())
-        return f"Configuration(\n\t{variables_repr}\n)"
+        return f"Frame(\n\t{variables_repr}\n)"

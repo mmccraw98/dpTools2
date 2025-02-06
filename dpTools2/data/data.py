@@ -50,9 +50,9 @@ class Data:
     def msd_corr_func(self, pair: Tuple[int, int], drift_correction: bool = True, particle_level: bool = True) -> Result:
         i, j = pair
         if particle_level:
-            delta = self.trajectory[i].particlePos - self.trajectory[j].particlePos
-        else:
             delta = self.trajectory[i].positions - self.trajectory[j].positions
+        else:
+            delta = self.trajectory[i].vertex_positions - self.trajectory[j].vertex_positions
         if drift_correction:
             delta -= np.mean(delta, axis=0, keepdims=True)
         delta_squared = np.sum(delta ** 2, axis=1)
@@ -63,7 +63,7 @@ class Data:
 
     def rot_msd_corr_func(self, pair: Tuple[int, int]) -> Result:
         i, j = pair
-        angle_diff = self.trajectory[i].particleAngles - self.trajectory[j].particleAngles
+        angle_diff = self.trajectory[i].angles - self.trajectory[j].angles
         return Result(
             data=(np.mean(angle_diff ** 2),),
             time=abs(self.trajectory.steps[i] - self.trajectory.steps[j])
@@ -73,9 +73,9 @@ class Data:
     def self_isf_corr_func(self, pair: Tuple[int, int], wave_vector: np.ndarray, filter: np.ndarray = None, num_angles: int = 10, drift_correction: bool = True, particle_level: bool = True, backend: str = 'numpy') -> Result:
         i, j = pair
         if particle_level:
-            delta = self.trajectory[i].particlePos - self.trajectory[j].particlePos
-        else:
             delta = self.trajectory[i].positions - self.trajectory[j].positions
+        else:
+            delta = self.trajectory[i].vertex_positions - self.trajectory[j].vertex_positions
         if filter is not None:
             delta = delta[filter]
 
@@ -102,7 +102,7 @@ class Data:
     
     def rot_self_isf_corr_func(self, pair: Tuple[int, int], filter: np.ndarray = None, n: int = 1) -> Result:
         i, j = pair
-        angle_diff = (self.trajectory[i].particleAngles - self.trajectory[j].particleAngles)
+        angle_diff = (self.trajectory[i].angles - self.trajectory[j].angles)
         if filter is not None:
             angle_diff = angle_diff[filter]
         return Result(
@@ -111,19 +111,19 @@ class Data:
         )
 
     def pair_corr_func(self, i: int, filters: List[np.ndarray], distance_bins: np.ndarray, angle_bins: np.ndarray = None, angle_axis_bins: np.ndarray = None, angle_period: float = None, return_edges: bool = False, angle_offsets: np.ndarray = None) -> Result:
-        pos = self.trajectory[i].particlePos
+        pos = self.trajectory[i].positions
         bins = [distance_bins]
         if angle_axis_bins is not None and angle_period is not None:
-            particle_angles = self.trajectory[i].particleAngles
+            particle_angles = self.trajectory[i].angles
             if angle_offsets is not None:
                 particle_angles += angle_offsets
             bins.append(angle_axis_bins)
 
         hist = []
         for f in filters:
-            pbc_pos = getPBCPositions(pos[f], self.system.boxSize)
+            pbc_pos = getPBCPositions(pos[f], self.system.box_size)
 
-            distances, diff = computeDistances(pbc_pos, self.system.boxSize, return_diffs=True)
+            distances, diff = computeDistances(pbc_pos, self.system.box_size, return_diffs=True)
 
             sample = [distances]
             if angle_bins is not None and angle_period is not None:
