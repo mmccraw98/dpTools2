@@ -1,6 +1,7 @@
 import numpy as np
 import os
 from typing import List, Tuple
+from ..utils.io.general import compress, decompress
 from .system import System
 from .trajectory import Trajectory
 from ..analysis.aggregation import Result
@@ -11,14 +12,42 @@ class Data:
     system_path = 'system'
     trajectory_path = 'trajectories'
 
-    def __init__(self, path, load_all=True, load_trajectory=True):
+    def __init__(self, path, load_all=True, load_trajectory=False, extract=True):
         self.root = path
-        self.load_system(path)
+        if self.system_is_compressed():
+            if extract:
+                self.decompress('system')
+                self.load_system(path)
+            else:
+                print('System is compressed!')
+                self.load_system(None)
+        else:
+            self.load_system(path)
         if load_trajectory:
+            if self.trajectory_is_compressed():
+                self.decompress('trajectories')
             self.load_trajectory(os.path.join(path, self.trajectory_path), load_all)
 
+    def system_is_compressed(self):
+        return os.path.exists(os.path.join(self.root, self.system_path + '.zip'))
+
+    def trajectory_is_compressed(self):
+        return os.path.exists(os.path.join(self.root, self.trajectory_path + '.zip'))
+
+    def compress(self, *args):
+        # set the cwd to the root
+        os.chdir(self.root)
+        compress(*args)
+
+    def decompress(self, *args):
+        # set the cwd to the root
+        os.chdir(self.root)
+        decompress(*args)
+
     def load_system(self, path):
-        if not os.path.exists(os.path.join(path, self.system_path)):
+        if path is None:
+            self.system = System(None)
+        elif not os.path.exists(os.path.join(path, self.system_path)):
             try:
                 self.system = System(path)
             except:

@@ -48,10 +48,9 @@ def calculate_pair_correlation_function(
         names.append('angle')
     if angle_axis_bins is not None:
         names.append('angle_axis')
-
-    if frame is not None:
+    
+    if frame is None:
         indices = data.trajectory.index.copy()
-
         res_with_edges = data.pair_corr_func(indices[0], filters=radii_filter, distance_bins=distance_bins, angle_bins=angle_bins, angle_axis_bins=angle_axis_bins, angle_period=angle_period, return_edges=True, angle_offsets=angle_offsets)
         edges = res_with_edges.data[1]
         if backend == 'multiprocessing':
@@ -160,9 +159,6 @@ def calculate_time_correlations(
         overwrite: bool = False,
         just_msd: bool = False,
         angle_corrs: bool = True,
-        starting_step: int = 0,
-        freq_power: int = 1,
-        step_decade: int = 10
 ):
     if not overwrite and os.path.exists(f'{data.root}/{data.system_path}/corrs.csv'):
         return
@@ -182,9 +178,9 @@ def calculate_time_correlations(
             raise ValueError('Pair correlation functions must be calculated first')
 
     if time_pair_style == 'log':
-        pairs = aggregation.generate_logscheme_time_pairs(data.trajectory.index, starting_step, freq_power, step_decade)
+        pairs = aggregation.get_log_pairs(data.trajectory.steps)
     else:
-        pairs = aggregation.generate_all_time_pairs(data.trajectory.index)
+        pairs = aggregation.generate_all_time_pairs(data.trajectory.steps)
 
     wave_vectors, filters, names = get_wave_vectors_filters_and_names(data)
     if backend == 'multiprocessing':

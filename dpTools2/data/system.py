@@ -10,9 +10,10 @@ class System:
     additional_metrics = ['corrs.csv', 'pair_corrs.csv']
 
     def __init__(self, path, metrics=None):
-        self.load_params(path)
-        self.load_metrics(path, metrics)
-        self.load_init(os.path.join(path, 'init'))
+        if path is not None:
+            self.load_params(path)
+            self.load_metrics(path, metrics)
+            self.load_init(os.path.join(path, 'init'))
 
     def load_params(self, path):
         paths = listdir(path, full=True, files_only=True, file_types=['json'])

@@ -1,6 +1,20 @@
 import numpy as np
 import numba as nb
 
+def get_log_pairs(steps):
+    indices = np.tril_indices(steps.size, k=-1)
+    differences = (steps[:, None] - steps[None, :])[indices]
+    oom_j = np.min(differences)
+    pairs = []
+    while True:
+        for i in range(1, 10):
+            mask = differences == oom_j * i
+            pairs.extend(list(zip(indices[0][mask], indices[1][mask])))
+        oom_j *= 10
+        if np.sum(mask) == 0:
+            break
+    return pairs
+
 @nb.njit(parallel=True, fastmath=True)
 def generate_logscheme_time_pairs(timesteps: np.ndarray,
                                   starting_step: int = 0,
