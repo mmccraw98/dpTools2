@@ -35,14 +35,10 @@ class Data:
         return os.path.exists(os.path.join(self.root, self.trajectory_path + '.zip'))
 
     def compress(self, *args):
-        # set the cwd to the root
-        os.chdir(self.root)
-        compress(*args)
+        compress(self.root, *args)
 
     def decompress(self, *args):
-        # set the cwd to the root
-        os.chdir(self.root)
-        decompress(*args)
+        decompress(self.root, *args)
 
     def load_system(self, path):
         if path is None:

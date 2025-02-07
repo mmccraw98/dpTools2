@@ -111,10 +111,10 @@ def listdir(root: str,
     return results
 
 
-def compress(*args):
+def compress(root, *args):
     # Decide which folders to compress
     if not args:
-        folders = listdir(os.getcwd(), dirs_only=True)
+        folders = listdir(root, dirs_only=True)
     else:
         folders = args
 
@@ -132,10 +132,10 @@ def compress(*args):
         shutil.rmtree(folder)
         print(f"Removed folder '{folder}'")
 
-def decompress(*args):
+def decompress(root, *args):
     # Decide which archives to decompress
     if not args:
-        archives = listdir(os.getcwd(), files_only=True, file_types=['zip'])
+        archives = listdir(root, files_only=True, file_types=['zip'])
     else:
         # Convert folder names -> archive filenames
         archives = [f'{folder}.zip' for folder in args]
