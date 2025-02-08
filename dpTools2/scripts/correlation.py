@@ -115,6 +115,9 @@ def calculate_all_pair_correlation_functions(
             f'r_second_third_peak_{name}': pc_second_third_peak.r,
         })
 
+    # reload the system
+    data.load_system(data.root)
+
     pd.DataFrame(results).to_csv(f'{data.root}/{data.system_path}/pair_corrs.csv', index=False, sep=',')
 
 def get_wave_vectors_filters_and_names(data: Data) -> tuple[np.ndarray, list[np.ndarray], list[str]]:
@@ -166,13 +169,13 @@ def calculate_time_correlations(
     data_was_fully_loaded = data.trajectory.frames is not None
 
     if not data_was_fully_loaded and can_load_all:
-        data = Data(data.root, load_all=True)
+        data = Data(data.root, load_all=True, load_trajectory=True)
 
     if backend not in ['threadpool', 'multiprocessing', 'serial']:
         raise ValueError(f'Backend {backend} not recognized')
     
     if not hasattr(data.system, 'pair_corrs'):
-        data = Data(data.root, load_all=True)
+        data = Data(data.root, load_all=True, load_trajectory=True)
         data_was_fully_loaded = True
         if not hasattr(data.system, 'pair_corrs'):
             raise ValueError('Pair correlation functions must be calculated first')
@@ -231,5 +234,8 @@ def calculate_time_correlations(
                     rot_isf_results = aggregation.calculate_serial(pairs, data.rot_self_isf_corr_func, filter=filter, n=num_vertex)
                 rot_isf, time_lags = aggregation.average_by_time_lag(rot_isf_results)
                 corrs[f'rot_self_isf_{name}'] = rot_isf
+
+    # reload the system
+    data.load_system(data.root)
 
     pd.DataFrame(corrs).to_csv(f'{data.root}/{data.system_path}/corrs.csv', index=False, sep=',')
