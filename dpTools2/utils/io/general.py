@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+from tqdm import tqdm
 
 def listdir(root: str,
             hidden: bool = False,
@@ -158,3 +159,40 @@ def decompress(root, *args):
         # Remove the zip file after successful extraction
         os.remove(archive)
         # print(f"Removed archive '{archive}'")
+
+def get_total_size(directory, use_progress=False):
+    """
+    Computes the total size of all non-symlink files in the given directory,
+    including all files in its subdirectories.
+    
+    Parameters:
+        directory (str): The path of the directory to scan.
+        use_progress (bool): If True, display a progress bar while processing.
+    
+    Returns:
+        int: The total size in bytes of all files found.
+    """
+    total_size = 0
+    if use_progress:
+        # First pass: count the total number of files to process.
+        total_files = sum(len(files) for _, _, files in os.walk(directory))
+        with tqdm(total=total_files, desc="Calculating total file size") as pbar:
+            for dirpath, _, filenames in os.walk(directory):
+                for filename in filenames:
+                    file_path = os.path.join(dirpath, filename)
+                    if not os.path.islink(file_path):
+                        try:
+                            total_size += os.path.getsize(file_path)
+                        except Exception as e:
+                            print(f"Error getting size for '{file_path}': {e}")
+                    pbar.update(1)
+    else:
+        for dirpath, _, filenames in os.walk(directory):
+            for filename in filenames:
+                file_path = os.path.join(dirpath, filename)
+                if not os.path.islink(file_path):
+                    try:
+                        total_size += os.path.getsize(file_path)
+                    except Exception as e:
+                        print(f"Error getting size for '{file_path}': {e}")
+    return total_size

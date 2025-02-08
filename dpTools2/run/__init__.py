@@ -1,2 +1,2 @@
-from .configs import get_default_disk_config, get_default_rigid_bumpy_config
+from .configs import get_default_disk_config, get_default_rigid_bumpy_config, get_default_particle_config
 from .cpp import launch_cpp_script_with_triggers

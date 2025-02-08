@@ -130,3 +130,13 @@ def load_config(path):
 def get_n_char_uuid(n):
     """Return a string of length n from a UUID's hex representation."""
     return uuid.uuid4().hex[:n]
+
+def get_default_particle_config(particle_type, n_particles, packing_fraction):
+    if particle_type == 'RigidBumpy':
+        particle_config = get_default_rigid_bumpy_config(n_particles=n_particles, packing_fraction=packing_fraction)
+    elif particle_type == 'RigidBumpyNoRotation':
+        particle_config = get_default_rigid_bumpy_config(n_particles=n_particles, packing_fraction=packing_fraction)
+        particle_config['rotation'] = False
+    else:
+        particle_config = get_default_disk_config(n_particles=n_particles, packing_fraction=packing_fraction)
+    return particle_config
