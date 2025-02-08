@@ -119,6 +119,7 @@ def compress(root, *args):
         folders = args
 
     for folder in folders:
+        folder = os.path.join(root, folder)
         # Make sure folder exists
         if not os.path.isdir(folder):
             print(f"Folder '{folder}' does not exist, skipping.")
@@ -126,11 +127,12 @@ def compress(root, *args):
         
         # Create a zip archive: folder -> folder.zip
         archive_name = shutil.make_archive(folder, 'zip', folder)
-        print(f"Compressed '{folder}' -> '{archive_name}'")
+        print(f"Compressed '{os.path.basename(folder)}' -> '{os.path.basename(archive_name)}'")
+        # print(f"Compressed '{folder}' -> '{archive_name}'")
 
         # Remove the original folder after successful compression
         shutil.rmtree(folder)
-        print(f"Removed folder '{folder}'")
+        # print(f"Removed folder '{folder}'")
 
 def decompress(root, *args):
     # Decide which archives to decompress
@@ -141,6 +143,7 @@ def decompress(root, *args):
         archives = [f'{folder}.zip' for folder in args]
 
     for archive in archives:
+        archive = os.path.join(root, archive)
         # Make sure archive exists
         if not os.path.isfile(archive):
             print(f"Archive '{archive}' does not exist, skipping.")
@@ -149,8 +152,9 @@ def decompress(root, *args):
         # Extract archive: folder.zip -> folder/
         extract_folder = archive.replace('.zip', '')
         shutil.unpack_archive(archive, extract_folder)
-        print(f"Decompressed '{archive}' -> '{extract_folder}'")
+        print(f"Decompressed '{os.path.basename(archive)}' -> '{os.path.basename(extract_folder)}'")
+        # print(f"Decompressed '{archive}' -> '{extract_folder}'")
 
         # Remove the zip file after successful extraction
         os.remove(archive)
-        print(f"Removed archive '{archive}'")
+        # print(f"Removed archive '{archive}'")
