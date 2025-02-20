@@ -14,6 +14,7 @@ class System:
             self.load_params(path)
             self.load_metrics(path, metrics)
             self.load_init(os.path.join(path, 'init'))
+            self.load_restart(os.path.join(path, 'restart'))
 
     def load_params(self, path):
         paths = listdir(path, full=True, files_only=True, file_types=['json'])
