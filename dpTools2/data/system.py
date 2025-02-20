@@ -48,6 +48,18 @@ class System:
             info = Info(filename)
             setattr(self, info_name, info)
 
+    def load_restart(self, path):
+        self.restart = Restart()
+        if path is None:
+            return
+        elif not os.path.exists(path):
+            raise ValueError(f"Restart path {path} not found.")
+        else:
+            for filename in listdir(path, full=True, files_only=True, file_types=['dat']):
+                info_name = os.path.basename(filename).split('.')[0]
+                info = Info(filename)
+                setattr(self.restart, info_name, info)
+
     def __repr__(self):
         variables = {
             var: repr(getattr(self, var)) for var in dir(self)
@@ -56,3 +68,12 @@ class System:
         }
         variables_repr = "\n\t".join(variables.keys())
         return f"System(\n\t{variables_repr}\n)"
+
+class Restart:
+    def __repr__(self):
+        variables = {
+            var: repr(getattr(self, var)) for var in dir(self)
+            if not var.startswith('_') and not callable(getattr(self, var))
+        }
+        variables_repr = "\n\t".join(variables.keys())
+        return f"Restart(\n\t{variables_repr}\n)"
