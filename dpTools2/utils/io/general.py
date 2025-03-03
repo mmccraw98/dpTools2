@@ -196,3 +196,22 @@ def get_total_size(directory, use_progress=False):
                     except Exception as e:
                         print(f"Error getting size for '{file_path}': {e}")
     return total_size
+
+def recursive_walk_with_stopping_content(root, stopping_content):
+    """
+    Recursively walk a directory and return all paths that contain the stopping content
+    without descending into the stopping content directories themselves.
+    """
+    result = []
+
+    def walk_directory(current_dir):
+        entries = os.listdir(current_dir)
+        if any(entry in stopping_content for entry in entries):
+            result.append(current_dir)
+        for entry in entries:
+            path = os.path.join(current_dir, entry)
+            if os.path.isdir(path) and entry not in stopping_content:
+                walk_directory(path)
+
+    walk_directory(root)
+    return result

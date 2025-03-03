@@ -1,1 +1,1 @@
-from .io import listdir, get_total_size, compress, decompress
+from .io import listdir, get_total_size, compress, decompress, recursive_walk_with_stopping_content
