@@ -117,6 +117,9 @@ class DataSet:  # simple container for a list of Data objects, supporting filter
     def size(self):
         return len(self.data)
     
+    def keys(self):
+        return self.config_df.columns.tolist() + self.scalar_df.columns.tolist()
+    
     def __getitem__(self, key):
         # Handle simple integer/slice indexing of self.data
         if isinstance(key, (int, slice)):
