@@ -4,8 +4,8 @@ from typing import List, Dict, Any
 import pandas as pd
 import numpy as np
 import os
-from data import Data
-from ..utils.io import recursive_walk_with_stopping_content
+from .data import Data
+from ..utils.io.general import recursive_walk_with_stopping_content
 
 def flatten_dict(d, parent_key='', sep='_'):
     items = []
