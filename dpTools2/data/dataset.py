@@ -30,17 +30,21 @@ class BaseDataProcessor:  # base class for all data processors,
         instance = super().__new__(cls)
         return instance
     
-    def __call__(self, data, global_df, **kwargs):
+    def __call__(self, index, data, global_df, **kwargs):
         raise NotImplementedError("Subclasses must implement this method")
     
 class DFTimeAverager(BaseDataProcessor):  # time average a dataframe and append it to the global dataframe
     name = 'DFTimeAverager'
-    def __call__(self, data, global_df, **kwargs):
+    def __call__(self, index, data, global_df, **kwargs):
         df = data.system.energy
         time_avg = df.mean()
         if len(global_df.columns) == 0:  # If DataFrame is empty, initialize with columns
             global_df[time_avg.index] = None  # Create columns first
-        global_df.loc[len(global_df)] = time_avg  # Add the row to global_df in place
+        # if columns in time_avg arent in global_df, add them first
+        missing_cols = set(time_avg.keys()) - set(global_df.columns)
+        if missing_cols:
+            global_df[list(missing_cols)] = None
+        global_df.loc[index] = time_avg  # Add the row to global_df in place
 
 class DataSet:  # simple container for a list of Data objects, supporting filtering operations like numpy/pandas
     def __init__(
@@ -48,9 +52,9 @@ class DataSet:  # simple container for a list of Data objects, supporting filter
             root,  # location where all data is stored
             load_kwargs: Dict[str, Any] = {},  # kwargs for loading the individual data objects
             data_loaders: List[BaseDataLoader] = [],  # additional processing steps to apply to the data (extra loading / analysis)
-            data_loader_kwargs: List[Dict[str, Any]] = [],  # kwargs for the additional processing steps
+            data_loaders_kwargs: List[Dict[str, Any]] = [{}],  # kwargs for the additional processing steps
             data_processors: List[BaseDataProcessor] = [],  # additional processing steps to apply to the dataframe
-            data_processors_kwargs: List[Dict[str, Any]] = [],  # kwargs for the additional processing steps
+            data_processors_kwargs: List[Dict[str, Any]] = [{}],  # kwargs for the additional processing steps
             ):
         self.root = root
         with warnings.catch_warnings():
@@ -62,18 +66,18 @@ class DataSet:  # simple container for a list of Data objects, supporting filter
                     self.data.append(Data(path, extract=True, **load_kwargs))
                 except Exception as e:
                     print(f"Error loading {path}: {e}")
-            self.process_data(data_loaders, data_loader_kwargs)
+            self.load_data(data_loaders, data_loaders_kwargs)
         self.names = [os.path.basename(data.root) for data in self.data]
         self.config_df = self.get_config_keys()
         self.scalar_df = self.get_scalar_keys([DFTimeAverager()] + data_processors, [{}] + data_processors_kwargs)
 
-    def process_data(
+    def load_data(
             self,
             data_loaders: List[BaseDataLoader] = [],
-            data_loaders_kwargs: List[Dict[str, Any]] = []
+            data_loaders_kwargs: List[Dict[str, Any]] = [{}],
         ):
         for data_loader, data_loader_kwargs in zip(data_loaders, data_loaders_kwargs):
-            for data in tqdm(self.data, desc=f'Processing {data_loader.name}', total=self.size()):
+            for data in tqdm(self.data, desc=f'Loading {data_loader.name}', total=self.size()):
                 data_loader(data, **data_loader_kwargs)
 
     def get_config_keys(
@@ -95,12 +99,12 @@ class DataSet:  # simple container for a list of Data objects, supporting filter
     def get_scalar_keys(
             self,
             data_processors: List[BaseDataProcessor] = [],
-            data_processors_kwargs: List[Dict[str, Any]] = [],
+            data_processors_kwargs: List[Dict[str, Any]] = [{}],
         ):
         scalar_keys = pd.DataFrame()
         for data_processor, data_processor_kwargs in zip(data_processors, data_processors_kwargs):
-            for data in tqdm(self.data, desc=f'Processing {data_processor.name}', total=self.size()):
-                data_processor(data, global_df=scalar_keys, **data_processor_kwargs)
+            for index, data in tqdm(enumerate(self.data), desc=f'Processing {data_processor.name}', total=self.size()):
+                data_processor(index, data, global_df=scalar_keys, **data_processor_kwargs)
         return scalar_keys
     
     def scalars(self):
